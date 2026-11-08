@@ -113,7 +113,7 @@ class TestGetAiResponse:
         seen = {}
         monkeypatch.setattr(ea, "_get_client", lambda: self._client(seen, [self._text("ok")]))
         ea.get_ai_response("hi")
-        assert seen["model"] == ea.DEFAULT_MODEL == "claude-opus-5-5"
+        assert seen["model"] == ea.DEFAULT_MODEL == "claude-haiku-5-5"
         assert seen["output_config"] == {"effort": "low"}
         # temperature, top_p and top_k are rejected by current Claude models
         assert not {"temperature", "top_p", "top_k"} & set(seen)

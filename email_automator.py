@@ -4,7 +4,7 @@ import os
 import re
 from typing import Dict, Optional
 
-DEFAULT_MODEL = "claude-opus-5-5"
+DEFAULT_MODEL = "claude-haiku-5-5"
 SYSTEM_PROMPT = "You are a professional email assistant. Generate concise, appropriate responses."
 
 
@@ -25,9 +25,9 @@ def _get_client():
 def get_ai_response(prompt: str) -> Optional[str]:
     """Get a Claude response, or None if AI is unavailable, refuses or fails.
 
-    Thinking is always on for the default model, and thinking tokens count
-    towards max_tokens, so the limit is generous and effort is kept low for
-    these short tasks.
+    The default model thinks by default and thinking tokens count towards
+    max_tokens, so the limit is generous and effort is kept low for these
+    short tasks.
     """
     try:
         client = _get_client()

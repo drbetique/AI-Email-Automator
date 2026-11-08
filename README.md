@@ -48,7 +48,7 @@ Paste a key into the sidebar, or set it before starting the app:
 
 ```bash
 export ANTHROPIC_API_KEY=...          # PowerShell: $env:ANTHROPIC_API_KEY="..."
-export ANTHROPIC_MODEL=claude-opus-5-5  # optional, this is the default
+export ANTHROPIC_MODEL=claude-haiku-5-5  # optional, this is the default
 ```
 
 ### Run

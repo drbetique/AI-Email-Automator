@@ -35,7 +35,7 @@ What is done and what is left for AI Email Automator. Items are grouped by theme
 - [ ] Remove quoted reply history and signatures before text is sent to the model.
 - [ ] Add a visible switch that shows whether the model is on, and what will be sent to it.
 - [ ] Support a local model, so no email text has to leave the machine.
-- [ ] Offer a cheaper model option for classification and keep the larger model for drafting replies.
+- [ ] Use a larger model only for drafting replies, and keep the small default for classification.
 - [ ] Use structured outputs for the classification result instead of parsing JSON from text.
 - [ ] Redact addresses, phone numbers and long numbers from text sent to the model.
 - [ ] Add a short `SECURITY.md` explaining how to report a problem and what data the app handles.
