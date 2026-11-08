@@ -11,10 +11,10 @@ st.title("AI Personal Email Automator")
 # Sidebar: Configuration
 st.sidebar.header("Configuration")
 
-# OpenAI API Key (comment out if not using AI replies yet)
-openai_api_key = st.sidebar.text_input("OpenAI API Key (optional)", type="password")
-if openai_api_key:
-    os.environ["OPENAI_API_KEY"] = openai_api_key
+# Anthropic API key (optional): without it the rule-based classifier is used
+anthropic_api_key = st.sidebar.text_input("Anthropic API Key (optional)", type="password")
+if anthropic_api_key:
+    os.environ["ANTHROPIC_API_KEY"] = anthropic_api_key
 
 # User Preferences
 st.sidebar.header("User Preferences")
@@ -82,8 +82,8 @@ if 'emails' in st.session_state:
             st.write(f"**Reason**: {result['reason']}")
             
             #Showing classification method
-            if os.getenv("OPENAI_API_KEY") and "AI classification failed" not in result["reason"]:
-                st.caption("Classified using Artificial Intellegence")
+            if os.getenv("ANTHROPIC_API_KEY") and "AI classification failed" not in result["reason"]:
+                st.caption("Classified using Claude")
             else:
                 st.caption("Classified using rule-based logic")
 

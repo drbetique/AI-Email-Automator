@@ -39,18 +39,18 @@ class TestRuleBased:
 
 class TestClassifyAndReply:
     def test_urgent_sender_wins_over_spam_words(self, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         result = ea.classify_and_reply("Boss <boss@company.com>", "Free pizza", "win a free lunch", PREFS)
         assert result["category"] == "urgent"
         assert "boss@company.com" in result["reason"]
 
     def test_uses_rules_when_no_key(self, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
         result = ea.classify_and_reply("a@b.com", "Lunch", "hi, how are you", PREFS)
         assert result["category"] == "social"
 
     def test_falls_back_to_rules_when_ai_fails(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         monkeypatch.setattr(ea, "get_ai_response", lambda prompt: None)
         result = ea.classify_and_reply("a@b.com", "Deadline", "due today", PREFS)
         assert result["category"] == "urgent"
@@ -58,7 +58,7 @@ class TestClassifyAndReply:
 
 class TestAiPath:
     def _ai(self, monkeypatch, replies):
-        monkeypatch.setenv("OPENAI_API_KEY", "test-key")
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key")
         queue = list(replies)
         monkeypatch.setattr(ea, "get_ai_response", lambda prompt: queue.pop(0))
 
@@ -82,26 +82,58 @@ class TestAiPath:
 
 
 class TestGetAiResponse:
-    def test_none_without_key(self, monkeypatch):
-        monkeypatch.delenv("OPENAI_API_KEY", raising=False)
-        assert ea.get_ai_response("hi") is None
-
-    def test_uses_configured_model(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_MODEL", "my-model")
-        seen = {}
-
-        class Msg:
-            content = " hello "
-
-        class Choice:
-            message = Msg()
-
-        class Completions:
+    @staticmethod
+    def _client(seen, blocks, stop_reason="end_turn"):
+        class Messages:
             def create(self, **kwargs):
                 seen.update(kwargs)
-                return type("R", (), {"choices": [Choice()]})()
+                return type("R", (), {"content": blocks, "stop_reason": stop_reason})()
 
-        client = type("C", (), {"chat": type("Ch", (), {"completions": Completions()})()})()
+        return type("C", (), {"messages": Messages()})()
+
+    @staticmethod
+    def _text(value):
+        return type("B", (), {"type": "text", "text": value})()
+
+    def test_none_without_key(self, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        assert ea.get_ai_response("hi") is None
+
+    def test_uses_configured_model_and_joins_text_blocks(self, monkeypatch):
+        monkeypatch.setenv("ANTHROPIC_MODEL", "my-model")
+        seen = {}
+        thinking = type("B", (), {"type": "thinking", "thinking": ""})()
+        client = self._client(seen, [thinking, self._text(" hello "), self._text("world ")])
         monkeypatch.setattr(ea, "_get_client", lambda: client)
-        assert ea.get_ai_response("hi") == "hello"
+        assert ea.get_ai_response("hi") == "hello world"
         assert seen["model"] == "my-model"
+
+    def test_default_model_and_no_sampling_parameters(self, monkeypatch):
+        monkeypatch.delenv("ANTHROPIC_MODEL", raising=False)
+        seen = {}
+        monkeypatch.setattr(ea, "_get_client", lambda: self._client(seen, [self._text("ok")]))
+        ea.get_ai_response("hi")
+        assert seen["model"] == ea.DEFAULT_MODEL == "claude-opus-5-5"
+        assert seen["output_config"] == {"effort": "low"}
+        # temperature, top_p and top_k are rejected by current Claude models
+        assert not {"temperature", "top_p", "top_k"} & set(seen)
+
+    def test_refusal_returns_none(self, monkeypatch):
+        client = self._client({}, [], stop_reason="refusal")
+        monkeypatch.setattr(ea, "_get_client", lambda: client)
+        assert ea.get_ai_response("hi") is None
+
+    def test_empty_text_returns_none(self, monkeypatch):
+        client = self._client({}, [self._text("  ")])
+        monkeypatch.setattr(ea, "_get_client", lambda: client)
+        assert ea.get_ai_response("hi") is None
+
+    def test_api_error_returns_none(self, monkeypatch):
+        class Boom:
+            class messages:
+                @staticmethod
+                def create(**kwargs):
+                    raise RuntimeError("down")
+
+        monkeypatch.setattr(ea, "_get_client", lambda: Boom())
+        assert ea.get_ai_response("hi") is None

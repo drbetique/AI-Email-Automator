@@ -4,45 +4,52 @@ import os
 import re
 from typing import Dict, Optional
 
-DEFAULT_MODEL = "gpt-4o-mini"
+DEFAULT_MODEL = "claude-opus-5-5"
+SYSTEM_PROMPT = "You are a professional email assistant. Generate concise, appropriate responses."
 
 
 def _get_client():
-    """Return an OpenAI client, or None when no API key is set.
+    """Return an Anthropic client, or None when no API key is set.
 
-    The openai package is imported here so the app and the rule-based
+    The anthropic package is imported here so the app and the rule-based
     classifier work without it when no key is configured.
     """
-    api_key = os.getenv("OPENAI_API_KEY")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
         return None
-    from openai import OpenAI
+    import anthropic
 
-    return OpenAI(api_key=api_key)
+    return anthropic.Anthropic(api_key=api_key)
 
 
 def get_ai_response(prompt: str) -> Optional[str]:
-    """Get an AI-generated response, or None if AI is unavailable or fails."""
+    """Get a Claude response, or None if AI is unavailable, refuses or fails.
+
+    Thinking is always on for the default model, and thinking tokens count
+    towards max_tokens, so the limit is generous and effort is kept low for
+    these short tasks.
+    """
     try:
         client = _get_client()
         if client is None:
             return None
-        response = client.chat.completions.create(
-            model=os.getenv("OPENAI_MODEL", DEFAULT_MODEL),
-            messages=[
-                {"role": "system", "content": "You are a professional email assistant. Generate concise, appropriate responses."},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=150,
-            temperature=0.7,
+        response = client.messages.create(
+            model=os.getenv("ANTHROPIC_MODEL", DEFAULT_MODEL),
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            output_config={"effort": "low"},
+            messages=[{"role": "user", "content": prompt}],
         )
-        return (response.choices[0].message.content or "").strip() or None
+        if response.stop_reason == "refusal":
+            return None
+        text = "".join(block.text for block in response.content if block.type == "text")
+        return text.strip() or None
     except Exception as e:
         print(f"Error generating AI response: {e}")
         return None
 
 def ai_classify_and_reply(sender: str, subject: str, content: str, user_prefs: Dict) -> Dict:
-    """Use OpenAI to classify and generate replies."""
+    """Use Claude to classify and generate replies."""
     analysis_prompt = f"""
     Analyze this email and categorize it as either 'urgent', 'work', 'social', or 'spam'.
     
@@ -147,7 +154,7 @@ def classify_and_reply(sender: str, subject: str, email_content: str, user_prefs
     """
     Main function to classify an email and draft a reply.
     - First checks user-defined urgent senders
-    - Then tries AI classification (if OpenAI key is set)
+    - Then tries AI classification (if an Anthropic key is set)
     - Falls back to rule-based logic if AI fails or is unavailable
     """
     sender_clean = sender.lower().strip()
@@ -164,8 +171,8 @@ def classify_and_reply(sender: str, subject: str, email_content: str, user_prefs
                 "reply": user_prefs.get("urgent_reply", "I’ll address this soon.")
             }
 
-    # Priority 2: Try AI if OpenAI key is available
-    if os.getenv("OPENAI_API_KEY"):
+    # Priority 2: Try AI if an Anthropic key is available
+    if os.getenv("ANTHROPIC_API_KEY"):
         try:
             return ai_classify_and_reply(sender_clean, subject_clean, content_clean, user_prefs)
         except Exception as e:
