@@ -8,7 +8,7 @@ What is done and what is left for AI Email Automator. Items are grouped by theme
 - [x] Use the Claude API (Anthropic SDK) for the optional AI features, with the model set by `ANTHROPIC_MODEL`.
 - [x] Match rule-based keywords as whole words ("they" is no longer social, "window" is no longer spam).
 - [x] Split Gmail message parsing into testable functions.
-- [x] Add unit tests for the classifier, the AI path, the OpenAI call and Gmail parsing.
+- [x] Add unit tests for the classifier, the AI path, the Claude call and Gmail parsing.
 - [x] Add CI that compiles the code and runs the tests on Python 3.10 and 3.12.
 - [x] Remove buttons and options that did nothing.
 - [x] Correct the privacy note in the README.
