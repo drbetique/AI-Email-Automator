@@ -18,8 +18,6 @@ if openai_api_key:
 
 # User Preferences
 st.sidebar.header("User Preferences")
-auto_reply = st.sidebar.checkbox("Enable Auto-Reply", value=False)  # You can use this later to conditionally show replies
-
 urgent_senders_input = st.sidebar.text_input(
     "Urgent senders (comma-separated)",
     value="boss@company.com"
@@ -45,7 +43,7 @@ st.subheader("Recent Emails")
 
 if st.button("Load Emails from Gmail"):
     if not os.path.exists("credentials.json"):
-        st.error("Missing `credentials.json`...") 
+        st.error("Missing `credentials.json`. Download an OAuth client file from the Google Cloud console and save it next to app.py (see the README).")
     else:
         try:
             service = get_gmail_service()
@@ -91,8 +89,7 @@ if 'emails' in st.session_state:
 
 
             
-            # wil only show reply if auto-reply is enabled OR always show suggestion (your choice)
-            if result["reply"] and (auto_reply or True):  # Set to `auto_reply` if you want toggle to control visibility
+            if result["reply"]:
                 st.markdown("**Suggested Reply:**")
                 st.code(result["reply"], language="")
 
@@ -119,13 +116,3 @@ if 'emails' in st.session_state:
                                 st.error("Failed to send reply.")
                         except Exception as e:
                             st.error(f"Error sending email: {str(e)}")
-                        
-
-            col1, col2 = st.columns(2)
-            with col1:
-                if st.button("🗑️ Mark as Spam", key=f"spam_{i}"):
-                    st.info(" Email marked as spam (feature placeholder)")
-                          # TODO: Add Gmail API call to move to spam
-            with col2:
-                if st.button("📁 Archive", key=f"archive_{i}"):
-                    st.info(" Email archived (feature placeholder)")                       
