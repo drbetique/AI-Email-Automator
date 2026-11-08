@@ -70,13 +70,7 @@ The tests fake the Gmail and OpenAI clients, so they need no credentials, key or
 
 ## Roadmap
 
-- [ ] Implement Mark as spam and Archive with the Gmail `modify` scope, and ask for that scope only when needed.
-- [ ] Store the OAuth token in the operating system's keyring instead of a pickle file.
-- [ ] Remember the classification so the model is not called again on every Streamlit rerun.
-- [ ] Let the user choose how many emails to load and which label to read.
-- [ ] Drop the quoted reply history before sending text to the model.
-- [ ] Support a local model so no email text has to leave the machine.
-- [ ] Deploy a demo that uses sample emails only.
+See [ROADMAP.md](ROADMAP.md) for what is done and what is planned.
 
 ## Licence
 
