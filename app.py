@@ -4,7 +4,6 @@ import streamlit as st
 from email_automator import classify_and_reply
 from gmail_reader import get_gmail_service, fetch_recent_emails
 import os
-import openai  # Only needed to implement ai reply functionality
 
 st.set_page_config(page_title="AI Email Automator", layout="wide")
 st.title("AI Personal Email Automator")
@@ -16,7 +15,6 @@ st.sidebar.header("Configuration")
 openai_api_key = st.sidebar.text_input("OpenAI API Key (optional)", type="password")
 if openai_api_key:
     os.environ["OPENAI_API_KEY"] = openai_api_key
-    openai.api_key = openai_api_key
 
 # User Preferences
 st.sidebar.header("User Preferences")

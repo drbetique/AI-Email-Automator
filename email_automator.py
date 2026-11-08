@@ -1,27 +1,41 @@
 # email_automator.py
 import json
 import os
-import openai
-from typing import Dict
+from typing import Dict, Optional
 
-# Initialize OpenAI client (will be None if key not set)
-openai.api_key = os.getenv("OPENAI_API_KEY")
+DEFAULT_MODEL = "gpt-4o-mini"
 
-def get_ai_response(prompt: str) -> str:
-    """Get AI-generated response using OpenAI API."""
+
+def _get_client():
+    """Return an OpenAI client, or None when no API key is set.
+
+    The openai package is imported here so the app and the rule-based
+    classifier work without it when no key is configured.
+    """
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        return None
+    from openai import OpenAI
+
+    return OpenAI(api_key=api_key)
+
+
+def get_ai_response(prompt: str) -> Optional[str]:
+    """Get an AI-generated response, or None if AI is unavailable or fails."""
     try:
-        if not openai.api_key:
+        client = _get_client()
+        if client is None:
             return None
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
+        response = client.chat.completions.create(
+            model=os.getenv("OPENAI_MODEL", DEFAULT_MODEL),
             messages=[
                 {"role": "system", "content": "You are a professional email assistant. Generate concise, appropriate responses."},
-                {"role": "user", "content": prompt}
+                {"role": "user", "content": prompt},
             ],
             max_tokens=150,
-            temperature=0.7
+            temperature=0.7,
         )
-        return response.choices[0].message['content'].strip()
+        return (response.choices[0].message.content or "").strip() or None
     except Exception as e:
         print(f"Error generating AI response: {e}")
         return None
