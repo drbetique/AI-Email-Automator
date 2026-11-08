@@ -36,3 +36,12 @@ ENV/
 
 # Streamlit
 .streamlit/
+
+# Local AI assistant files
+CLAUDE.md
+.claude/
+AGENTS.md
+.cursor/
+.cursorrules
+.github/copilot-instructions.md
+.aider*
