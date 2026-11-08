@@ -31,64 +31,67 @@ def get_gmail_service():
     
     return build('gmail', 'v1', credentials=creds)
 
+def _decode(data: str) -> str:
+    """Decode Gmail's URL-safe base64 body data, tolerating missing padding."""
+    padded = data + "=" * (-len(data) % 4)
+    return base64.urlsafe_b64decode(padded).decode("utf-8", errors="replace")
+
+
+def _find_plain_text(parts):
+    """Return the base64 data of the first text/plain part, searching nested parts."""
+    for part in parts:
+        if part.get("mimeType") == "text/plain" and part.get("body", {}).get("data"):
+            return part["body"]["data"]
+        if part.get("parts"):
+            nested = _find_plain_text(part["parts"])
+            if nested:
+                return nested
+    return None
+
+
+def extract_body(payload: dict) -> str:
+    """Pull a clean plain-text body out of a Gmail message payload."""
+    body = "[No body content]"
+    try:
+        if "parts" in payload:
+            data = _find_plain_text(payload["parts"])
+            body = _decode(data) if data else "[No plain text body found]"
+        elif payload.get("body", {}).get("data"):
+            body = _decode(payload["body"]["data"])
+    except Exception as e:
+        body = f"[Decoding error: {e}]"
+
+    body = re.sub(r"<[^>]*>", "", body)  # remove HTML tags
+    return re.sub(r"\s+", " ", body).strip()  # collapse whitespace
+
+
+def extract_headers(payload: dict) -> tuple:
+    """Return (sender, subject) from a Gmail message payload."""
+    sender = subject = ""
+    for header in payload.get("headers") or []:
+        name = header.get("name", "").lower()
+        if name == "from":
+            sender = header.get("value", "")
+        elif name == "subject":
+            subject = header.get("value") or ""
+    return sender, subject or "(no subject)"
+
+
 def fetch_recent_emails(service, max_results=5):
     results = service.users().messages().list(userId='me', maxResults=max_results).execute()
     messages = results.get('messages', [])
     email_list = []
-    
+
     for msg in messages:
         txt = service.users().messages().get(userId='me', id=msg['id']).execute()
         payload = txt['payload']
-        headers = payload.get("headers")
-        
-        sender = subject = ""
-        for d in headers:
-            if d['name'] == 'From':
-                sender = d['value']
-            if d['name'] == 'Subject':
-                subject = d['value'] or "(no subject)"
-        
-        # Recursive helper to find plain text body
-        def find_plain_text(parts):
-            for part in parts:
-                if part['mimeType'] == 'text/plain' and part['body'].get('data'):
-                    return part['body']['data']
-                # Handle nested parts (e.g., forwarded messages)
-                if part.get('parts'):
-                    nested = find_plain_text(part['parts'])
-                    if nested:
-                        return nested
-            return None
-        
-        body = "[No body content]"
-        
-        if 'parts' in payload:
-            data = find_plain_text(payload['parts'])
-            if data:
-                try:
-                    body = base64.urlsafe_b64decode(data).decode('utf-8')
-                except Exception as e:
-                    body = f"[Decoding error: {str(e)}]"
-            else:
-                body = "[No plain text body found]"
-        else:
-            # Single-part message (rare, but possible)
-            if payload['body'].get('data'):
-                try:
-                    body = base64.urlsafe_b64decode(payload['body']['data']).decode('utf-8')
-                except Exception as e:
-                    body = f"[Decoding error: {str(e)}]"
-        
-        # CRITICAL: STRIP HTML TAGS AND CLEAN WHITESPACE 
-        body = re.sub(r'<[^>]*>', '', body)  # Remove all HTML tags
-        body = re.sub(r'\s+', ' ', body).strip()  # Replace multiple spaces/newlines with single space
-        
+        sender, subject = extract_headers(payload)
         email_list.append({
             "sender": sender,
             "subject": subject,
-            "content": body[:1000]  # Keep more context for better classification
+            "content": extract_body(payload)[:1000],
         })
-    
+
     return email_list
 
 def send_email(service, to, subject, message_text):
