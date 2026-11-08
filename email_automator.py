@@ -1,6 +1,7 @@
 # email_automator.py
 import json
 import os
+import re
 from typing import Dict, Optional
 
 DEFAULT_MODEL = "gpt-4o-mini"
@@ -103,18 +104,27 @@ def ai_classify_and_reply(sender: str, subject: str, content: str, user_prefs: D
         "reply": ai_reply or user_prefs.get("work_reply", "Thank you for your email. I’ll review and respond shortly.")
     }
 
+def _has_keyword(text: str, keywords) -> bool:
+    """True if any keyword appears as a whole word (or phrase), allowing a plural 's'.
+
+    Plain substring matching misfires: "hey" is inside "they" and "win" is
+    inside "window".
+    """
+    return any(re.search(rf"\b{re.escape(kw)}s?\b", text) for kw in keywords)
+
+
 def rule_based_classify_and_reply(sender: str, subject: str, content: str, user_prefs: Dict) -> Dict:
     """Fallback rule-based classifier (no AI needed)."""
     full_text = f"{subject} {content}".lower()
 
     # Spam detection
     spam_keywords = ["unsubscribe", "offer", "discount", "free", "win", "cash", "promo", "deal", "click here"]
-    if any(kw in full_text for kw in spam_keywords):
+    if _has_keyword(full_text, spam_keywords):
         return {"category": "spam", "reason": "Contains promotional or spam-like keywords.", "reply": None}
 
     # Urgency detection
     urgent_keywords = ["urgent", "asap", "deadline", "immediate", "today", "tomorrow", "action required", "critical"]
-    if any(kw in full_text for kw in urgent_keywords):
+    if _has_keyword(full_text, urgent_keywords):
         return {
             "category": "urgent",
             "reason": "Contains urgency indicators (e.g., 'ASAP', 'deadline').",
@@ -122,8 +132,8 @@ def rule_based_classify_and_reply(sender: str, subject: str, content: str, user_
         }
 
     # Social detection
-    social_keywords = ["how are you", "hey", "hi ", "weekend", "dinner", "movie", "birthday", "congrats", "family", "friend"]
-    if any(kw in full_text for kw in social_keywords):
+    social_keywords = ["how are you", "hey", "hi", "weekend", "dinner", "movie", "birthday", "congrats", "family", "friend"]
+    if _has_keyword(full_text, social_keywords):
         return {"category": "social", "reason": "Appears to be a personal or social message.", "reply": None}
 
     # Default to work (as per your specification)
