@@ -5,7 +5,7 @@ What is done and what is left for AI Email Automator. Items are grouped by theme
 ## Done
 
 - [x] Fix `requirements.txt` so a fresh install works (`pandas==2.14.1` does not exist; unused packages removed).
-- [x] Move to the OpenAI 1.x client, with the model set by `OPENAI_MODEL`.
+- [x] Use the Claude API (Anthropic SDK) for the optional AI features, with the model set by `ANTHROPIC_MODEL`.
 - [x] Match rule-based keywords as whole words ("they" is no longer social, "window" is no longer spam).
 - [x] Split Gmail message parsing into testable functions.
 - [x] Add unit tests for the classifier, the AI path, the OpenAI call and Gmail parsing.
@@ -35,6 +35,8 @@ What is done and what is left for AI Email Automator. Items are grouped by theme
 - [ ] Remove quoted reply history and signatures before text is sent to the model.
 - [ ] Add a visible switch that shows whether the model is on, and what will be sent to it.
 - [ ] Support a local model, so no email text has to leave the machine.
+- [ ] Offer a cheaper model option for classification and keep the larger model for drafting replies.
+- [ ] Use structured outputs for the classification result instead of parsing JSON from text.
 - [ ] Redact addresses, phone numbers and long numbers from text sent to the model.
 - [ ] Add a short `SECURITY.md` explaining how to report a problem and what data the app handles.
 

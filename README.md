@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/drbetique/ai-email-automator/actions/workflows/ci.yml/badge.svg)](https://github.com/drbetique/ai-email-automator/actions/workflows/ci.yml)
 
-A small Streamlit app that reads your recent Gmail messages, sorts them into **urgent**, **work**, **social** or **spam**, and suggests a reply that you can send with one click. It works with no API key using a rule-based classifier, and can use an OpenAI model for better classification and replies.
+A small Streamlit app that reads your recent Gmail messages, sorts them into **urgent**, **work**, **social** or **spam**, and suggests a reply that you can send with one click. It works with no API key using a rule-based classifier, and can use a Claude model for better classification and replies.
 
 ![Screenshot of the app](Demo.png)
 
@@ -12,13 +12,13 @@ A small Streamlit app that reads your recent Gmail messages, sorts them into **u
 - **Urgent senders**: addresses you list are always treated as urgent.
 - **Suggested replies**, which you review before anything is sent. Nothing is sent automatically.
 - **Rule-based fallback**: whole-word keyword matching, used when no key is set or the model call fails.
-- **Optional OpenAI**: set a key and the model classifies and drafts replies.
+- **Optional Claude**: set an Anthropic API key and the model classifies and drafts replies.
 - **Sends through Gmail** with the `gmail.send` scope, only when you press the button.
 
 ## Privacy
 
-- **Without an OpenAI key**, everything runs on your machine. Email is only exchanged with Google's Gmail API.
-- **With an OpenAI key**, the sender, subject and first 1,000 characters of each email you view are sent to OpenAI to classify it and draft a reply. Do not enable it for mail you would not send to a third party.
+- **Without an Anthropic key**, everything runs on your machine. Email is only exchanged with Google's Gmail API.
+- **With an Anthropic key**, the sender, subject and first 1,000 characters of each email you view are sent to the Claude API to classify it and draft a reply. Do not enable it for mail you would not send to a third party.
 - Your Gmail OAuth token is stored locally in `token.pickle` and your client file in `credentials.json`. Both are git-ignored. Never commit them.
 
 ## Setup
@@ -42,13 +42,13 @@ pip install -r requirements.txt
 
 The first time you press *Load Emails from Gmail* a browser window asks you to approve read and send access.
 
-### Optional: OpenAI
+### Optional: Claude
 
 Paste a key into the sidebar, or set it before starting the app:
 
 ```bash
-export OPENAI_API_KEY=...        # PowerShell: $env:OPENAI_API_KEY="..."
-export OPENAI_MODEL=gpt-4o-mini  # optional, this is the default
+export ANTHROPIC_API_KEY=...          # PowerShell: $env:ANTHROPIC_API_KEY="..."
+export ANTHROPIC_MODEL=claude-opus-5-5  # optional, this is the default
 ```
 
 ### Run
@@ -66,7 +66,7 @@ pip install pytest
 python -m pytest
 ```
 
-The tests fake the Gmail and OpenAI clients, so they need no credentials, key or network.
+The tests fake the Gmail and Anthropic clients, so they need no credentials, key or network.
 
 ## Roadmap
 
